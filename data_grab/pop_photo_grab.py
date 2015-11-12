@@ -1,22 +1,34 @@
 import sys
 import datetime
 import time
-from fivehundredpx.client import FiveHundredPXAPI
 
-def get_time_series_pop_photo_stream(api_func, mongodb_name, mongodb_coll, secs_per_interval=60, 
-	max_intervals=3, **mongo_conn_kw):
+from photo import api
+from pprint import pprint
 
-	interval = 0
-	while True:
-		now = str(datetime.datetime.now()).split(".")[0]
-		ids = save_to_mongo(api_func(),mongodb_name,mongodb_coll+"-"+now)
-		print >> sys.stderr, "Write {0} trends".format(len(ids))
-		print >> sys.stderr, "Zzz..."
-		print >> sys.stderr.flush()
+from global_data import CONSUMER_KEY, CONSUMER_SECRET, PHOTO_GRAB_INTERVAL, PHOTO_GRAB_AMOUNT
 
-		time.sleep(secs_per_interval)
-		interval += 1
+class PhotoStream(object):
+	def __init__(self):
+		self.client = api.FiveHundredPx(CONSUMER_KEY, CONSUMER_SECRET)
 
-		if interval >= 3:
-			break
+	def get_time_series_pop_photo_stream(self):
+		interval = 0
+		while True:
+			count = 0
+			results = self.client.get_photos(rpp=100, feature='popular')
+			for photo in results:
+				print photo
+				count += 1
+				if count==PHOTO_GRAB_AMOUNT:
+					break
+			print '************************'
+			print '\n'
+			print '\n'
+			time.sleep(PHOTO_GRAB_INTERVAL)
+			interval += 1
+
+			if interval >= 3:
+				break
+
+
 			
