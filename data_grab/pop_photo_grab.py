@@ -20,12 +20,10 @@ class PhotoStream(object):
 			count += 1
 			if count==PHOTO_GRAB_PER_TIME:
 				break
-		# print '\n'
-		# print '\n'
 
 	def parse_photo_stream(self):
 		while not self.photo_queue.empty():
-			photo = self.photo_queue.get(0)
+			photo = self.photo_queue.get()
 			self.save_photo_stream_to_db(photo)
 
 	def save_photo_stream_to_db(self, photo):
@@ -39,14 +37,8 @@ class PhotoStream(object):
 		#has seen, update time varying fields
 		else:
 			photo_collection.update({'id':photo['id']},photo)
-
-		#save users into users collection
-		user_collection = mydb.users
-		#check if the user exists
-		user_check = user_collection.find_one({'id':photo['user']['id']})
-		if user_check is None:
-			user_collection.insert(photo['user'])
-			self._add_new_user_to_list(photo['user']['id'])
+		#add the authors of the popular photos into a list
+		self._add_new_user_to_list(photo['user']['id'])
 
 	#if user not seen in database, then it should be put to bfs queue for user relation graph
 	def _add_new_user_to_list(self, user):

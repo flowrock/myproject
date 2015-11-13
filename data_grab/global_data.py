@@ -1,4 +1,5 @@
 from Queue import Queue
+from bloom_user_check import MyBloomFilter
 
 #API key
 CONSUMER_KEY = "evM04lzFCTjOLOO8V140JFbhnvxWFaI6H5Rz3mX5"
@@ -14,6 +15,10 @@ USER_AMOUNT = 100000000
 
 #define user queue for bfs search
 user_bfs_queue = Queue()
+
+#define bloom filter for users
+bloom_filter = MyBloomFilter(capacity=USER_AMOUNT, error_rate=0.01)
+
 
 
 

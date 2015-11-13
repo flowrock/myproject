@@ -1,5 +1,5 @@
 import pymongo
 
-connection = pymongo.MongoClient('localhost',27017)
+connection = pymongo.MongoClient('localhost', 27017, maxPoolSize=10)
 mydb = connection.myproject
 
