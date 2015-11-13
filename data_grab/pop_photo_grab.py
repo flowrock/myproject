@@ -56,8 +56,10 @@ class PhotoStream(object):
 	def _add_new_user_to_list(self, user):
 		self.new_user_list.append(user)
 	#return new user list
-	def get_new_user_list(self)
+	def get_new_user_list(self):
 		return self.new_user_list
+	def clear_new_user_list(self):
+		self.new_user_list = []
 
 
 

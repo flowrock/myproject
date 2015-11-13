@@ -10,3 +10,6 @@ class MyBloomFilter(object):
 	def add_user(self, user_id):
 		self.bf.add(user_id)
 
+	def clear_bloom_filter(self):
+		self.bf.clear_all()
+
