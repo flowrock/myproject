@@ -23,8 +23,7 @@ class FiveHundredPx(object):
             raise NotImplementedError
         self._set_consumer_key_to_args_(post_args, kwargs)
         base_url = FiveHundredPx.BASE_URL
-        return http_request(base_url, path, post_args, log_request, **kwargs)
-  
+        return http_request(base_url, path, post_args, log_request, **kwargs)  
 
     def _set_consumer_key_to_args_(self, post_args, kwargs):
         if post_args is not None:

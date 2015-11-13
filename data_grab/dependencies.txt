@@ -1,3 +1,4 @@
 requests-oauth
 mongodb
 simplejson
+pybloomfiltermmap
