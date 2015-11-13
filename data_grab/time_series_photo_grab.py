@@ -40,15 +40,10 @@ class TimeSeriesPhotoGrabber(object):
 		for user in new_user_list:
 			if not self.bf.is_user_seen(user):
 				self.unique_count += 1
-				print "Putting No.%d new user" % self.unique_count
+				# print "Putting No.%d new user" % self.unique_count
 				self.bf.add_user(user)
 				user_bfs_queue.put(user)
 
-grabber = TimeSeriesPhotoGrabber()
-user_searcher = LoopedUserSearch()
-user_searcher.start()
-grabber.start_looping()
-user_searcher.join()
 
 
 

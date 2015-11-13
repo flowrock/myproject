@@ -7,7 +7,7 @@ CONSUMER_SECRET = "U6NpXyxLVNzUExa5pwps5x8hsPdhbnfiuBCj4D0d"
 #time interval between two photo grabs
 PHOTO_GRAB_INTERVAL = 10
 #popular photos to grab per time
-PHOTO_GRAB_PER_TIME = 1000
+PHOTO_GRAB_PER_TIME = 1
 
 #estimated user number
 USER_AMOUNT = 100000000

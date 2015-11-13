@@ -1,9 +1,5 @@
-import sys
-import threading
-import time
-
 from Queue import Queue
-from photo import api
+from pxapi import api
 
 import global_data
 from global_data import CONSUMER_KEY, CONSUMER_SECRET, PHOTO_GRAB_PER_TIME
@@ -20,12 +16,12 @@ class PhotoStream(object):
 		results = self.client.get_photos(rpp=100, feature='popular')
 		for photo in results:
 			self.photo_queue.put(photo)
-			print "get photo %d"%count
+			# print "get photo %d"%count
 			count += 1
 			if count==PHOTO_GRAB_PER_TIME:
 				break
-		print '\n'
-		print '\n'
+		# print '\n'
+		# print '\n'
 
 	def parse_photo_stream(self):
 		while not self.photo_queue.empty():
@@ -69,6 +65,3 @@ class PhotoStream(object):
 
 
 
-
-
-			
