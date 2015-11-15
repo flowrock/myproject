@@ -13,7 +13,7 @@ class PhotoStream(object):
 
 	def get_pop_photo_stream(self):
 		count = 0
-		results = self.client.get_photos(rpp=100, feature='popular')
+		results = self.client.get_photos(rpp=100, feature='popular', tags=1)
 		for photo in results:
 			self.photo_queue.put(photo)
 			# print "get photo %d"%count

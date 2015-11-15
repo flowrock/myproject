@@ -1,6 +1,5 @@
 from functools import partial
 
-import urllib
 from json_finder import _parse_json
 from http import http_request, smart_urlencode, paginate
 

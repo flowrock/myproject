@@ -1,4 +1,6 @@
 requests-oauth
 mongodb
 simplejson
-pybloomfiltermmap
+bitarray
+selenium
+PhantomJS
