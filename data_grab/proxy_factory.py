@@ -14,21 +14,18 @@ class Proxy:
 class ProxyFactory:
     def __init__(self):
         self.pool = []
-        self.proxyPairs = []
+        self.proxyPairs = {}
     
     def Run(self):
         proxyList = self.FetchProxies()
         self.ValidateProxies(proxyList)
         
         self.pool.sort()
-        
         for i in self.pool:
-            self.proxyPairs += [(i.address, i.time)]
+            self.proxyPairs[i.address] = i.time
 
 
     def FetchProxies(self):
-        
-        print("fetching proxy list...")
         u = "http://www.freeproxylists.net/zh/?c=us&f=1&s=u"
         driver = webdriver.phantomjs.webdriver.WebDriver(executable_path="/usr/local/lib/node_modules/phantomjs/lib/phantom/bin/phantomjs")
         driver.get(u)
@@ -39,7 +36,6 @@ class ProxyFactory:
                 cells = i.text.split()
                 proxies += [u"http://{0}:{1}".format(cells[0], cells[1])]
         proxies = proxies[1:]
-        print("{0} fetched".format(len(proxies)))
         return proxies
     
     def CheckProxy(self, address, tests, result):
@@ -51,11 +47,10 @@ class ProxyFactory:
                 start = time.clock()
                 data = opener.open(t, timeout = 5).read().decode()
                 end = time.clock()
-                print("[Proxy {0}]: OK for {1} in time: {2} s".format(address, t, end - start))
                 result.put((address, end - start))
+                print "OK"
             except Exception as e:
-                print(e)
-                print("[Proxy {0}]: not available".format(address))
+                print "unavailable"
     
     def ValidateProxies(self, proxyList):
         maxProc = 5
@@ -68,13 +63,11 @@ class ProxyFactory:
             p.start()  
             
             if len(multiprocessing.active_children()) > maxProc:
-                print('active_children: ', multiprocessing.active_children())
                 p.join()
             
         while len(multiprocessing.active_children()) > 0:
             time.sleep(3)
         end = time.clock()
-        print("total time for validation:", end - start, "s")
         
         self.pool = []
         
@@ -82,11 +75,8 @@ class ProxyFactory:
             a = result.get()
             self.pool += [Proxy(a[0], a[1])]
         
-        print("{0} validated".format(len(self.pool)))
-
     
-if __name__ == '__main__':
-    
+def get_available_proxies():
     pf = ProxyFactory()
     pf.Run()
-    print(pf.proxyPairs)
+    return pf.proxyPairs

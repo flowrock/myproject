@@ -48,7 +48,7 @@ def start_looping():
 		time.sleep(PHOTO_GRAB_INTERVAL)
 		intervals += 1
 
-		if intervals >= 2:
+		if intervals >= 1:
 			break
 
 

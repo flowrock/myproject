@@ -1,4 +1,4 @@
-from Queue import Queue
+from multiprocessing import Queue
 
 _bfs_queue = Queue()
 
