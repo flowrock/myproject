@@ -24,7 +24,7 @@ def fetch(page, url):
 
 
 def asynchronous():
-    url = 'https://api.500px.com/v1/users/6490074/followers?fullformat=1&rpp=100'
+    url = 'https://api.500px.com/v1/users/8275495/followers?fullformat=1&rpp=100'
     total_pages = fetch(1, url+"&page=1")
     print "total pages is ", total_pages
     if total_pages is not None and total_pages > 1:

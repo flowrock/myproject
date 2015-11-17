@@ -13,4 +13,3 @@ USER_AMOUNT = 2**26
 
 
 
-

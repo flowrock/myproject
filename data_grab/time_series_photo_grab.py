@@ -3,9 +3,11 @@ import threading
 from threading import current_thread
 import os
 
-from user_graph_constructor import LoopedUserSearch
-from user_manager import UserManager
-from bfs_queue_manager import BfsQueueManager
+import user_manager as um
+#import LoopedUserSearch is necessary here, otherwise gevent is not working, still don't know the reason
+#from user_graph_constructor import LoopedUserSearch
+import user_graph_constructor
+import bfs_queue_manager as bqm
 from pop_photo_grab import PhotoStream
 from global_data import PHOTO_GRAB_INTERVAL
 
@@ -30,12 +32,10 @@ class TimeSeriesPhotoGrabber(object):
 	#after one run of photo grabbing, get the new authors of the popular photos and put to bfs queue
 	def _add_to_user_search_queue(self, new_user_list):
 		print new_user_list
-		um = UserManager()
-		bm = BfsQueueManager()
 		for user in new_user_list:
 			if not um.user_seen(user):
 				um.add_user(user)
-				bm.put_user(user)
+				bqm.put_user(user)
 
 
 #core function of the time series photo grabbing
