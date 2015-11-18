@@ -4,3 +4,4 @@ simplejson
 bitarray
 selenium
 PhantomJS
+gevent

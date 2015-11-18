@@ -7,7 +7,6 @@ import time
 import threading
 from multiprocessing import Process, Pool
 from Queue import Queue
-from global_data import USER_AMOUNT
 import user_manager
 
 mydb = None
@@ -20,11 +19,11 @@ def retrieve_user_from_queue():
     global mydb
     mydb = connection.myproject
     threading_list = []
-    for i in range(20):
+    for i in range(10):
         t = threading.Thread(target=start_loop)
         threading_list.append(t)
-        time.sleep(1)
         t.start()
+        time.sleep(1)
     for t in threading_list:
         t.join()
 
@@ -36,6 +35,8 @@ def start_loop():
             user = bfs_queue.get()
             print user
             _request_followers_of_user(user)
+        else:
+            time.sleep(1)
         if time.time()-start > 300:
             break
 
@@ -75,6 +76,8 @@ def _fetch(user, url, page, attempts):
 def _save_follower_relation_to_db(user, follower_list):
     follower_id_list = []
 
+    rejected_fields = ['domain','firstname','lastname','cover_url','thumbnail_background_url','avatars']
+
     #save users into users collection
     user_collection = mydb.users
     for follower in follower_list:
@@ -83,6 +86,8 @@ def _save_follower_relation_to_db(user, follower_list):
             user_manager.add_user(follower['id'])
             bfs_queue.put(follower['id'])
             follower['following'] = [user]
+            for field in rejected_fields:
+                follower.pop(field, None)
             user_collection.insert(follower)
         else:
             record = user_collection.find_one({'id':follower['id']})

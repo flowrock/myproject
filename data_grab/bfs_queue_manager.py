@@ -1,4 +1,4 @@
-from multiprocessing import Queue
+from gevent.queue import Queue
 
 bfs_queue = Queue()
 
