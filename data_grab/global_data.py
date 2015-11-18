@@ -10,6 +10,9 @@ PHOTO_GRAB_PER_TIME = 1
 #estimated user number
 USER_AMOUNT = 2**26
 
+#user grab thread number
+THREAD_NUM = 10
+
 
 
 

@@ -1,29 +1,16 @@
+from gevent import monkey; monkey.patch_all()
+import gevent
 import urllib2
 import time
 from selenium import webdriver
-import multiprocessing
-from multiprocessing import Process, Queue
-
-class Proxy:
-    def __init__(self, addr, time):
-        self.address = addr
-        self.time = time
-    def __lt__(self, other):
-         return self.time < other.time
 
 class ProxyFactory:
     def __init__(self):
-        self.pool = []
-        self.proxyPairs = {}
+        self.available_proxies = {}
     
     def Run(self):
         proxyList = self.FetchProxies()
         self.ValidateProxies(proxyList)
-        
-        self.pool.sort()
-        for i in self.pool:
-            self.proxyPairs[i.address] = i.time
-
 
     def FetchProxies(self):
         u = "http://www.freeproxylists.net/zh/?c=us&f=1&s=u"
@@ -38,45 +25,30 @@ class ProxyFactory:
         proxies = proxies[1:]
         return proxies
     
-    def CheckProxy(self, address, tests, result):
-        for t in tests:
-            proxy=urllib2.ProxyHandler({'http': address})
-            opener=urllib2.build_opener(proxy, urllib2.HTTPHandler)
-            opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36')]
-            try:
-                start = time.clock()
-                data = opener.open(t, timeout = 5).read().decode()
-                end = time.clock()
-                result.put((address, end - start))
-                print "OK"
-            except Exception as e:
-                print "unavailable"
+    def CheckProxy(self, address, url):
+        proxy=urllib2.ProxyHandler({'http': address})
+        opener=urllib2.build_opener(proxy, urllib2.HTTPHandler)
+        opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36')]
+        try:
+            start = time.clock()
+            data = opener.open(url, timeout = 3)
+            end = time.clock()
+            self.available_proxies[address] = end-start
+            # print "OK"
+        except Exception as e:
+            # print "unavailable"
     
     def ValidateProxies(self, proxyList):
-        maxProc = 5
-        tests = ["http://www.google.com"]
-        result = Queue()
-        start = time.clock()
-        
-        for i in proxyList:
-            p = Process(target=self.CheckProxy, args=(i, tests, result))
-            p.start()  
-            
-            if len(multiprocessing.active_children()) > maxProc:
-                p.join()
-            
-        while len(multiprocessing.active_children()) > 0:
-            time.sleep(3)
+        url = "https://api.500px.com/v1/users/9149967/followers?fullformat=1"
+        start = time.clock() 
+        jobs = []
+        for address in proxyList:
+            jobs.append(gevent.spawn(self.CheckProxy, address, url)) 
+        gevent.joinall(jobs)     
         end = time.clock()
-        
-        self.pool = []
-        
-        while not result.empty():
-            a = result.get()
-            self.pool += [Proxy(a[0], a[1])]
         
     
 def get_available_proxies():
     pf = ProxyFactory()
     pf.Run()
-    return pf.proxyPairs
+    return pf.available_proxies

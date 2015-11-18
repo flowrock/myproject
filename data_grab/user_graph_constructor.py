@@ -12,9 +12,10 @@ import user_manager
 mydb = None
 bfs_queue = None
 
+count = 1
+
 #the user mining process is an infinite loop
 def retrieve_user_from_queue():
-    # start = time.time()
     connection = pymongo.MongoClient('localhost', 27017, maxPoolSize=10)
     global mydb
     mydb = connection.myproject
@@ -33,12 +34,14 @@ def start_loop():
     while True:
         if not bfs_queue.empty():
             user = bfs_queue.get()
-            print user
+            global count
+            print count
+            count+=1
             _request_followers_of_user(user)
         else:
             time.sleep(1)
-        if time.time()-start > 300:
-            break
+        # if time.time()-start > 300:
+            # break
 
 def _request_followers_of_user(user):
     url = 'https://api.500px.com/v1/users/'+str(user)+'/followers?fullformat=1&rpp=100'
