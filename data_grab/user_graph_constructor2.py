@@ -1,8 +1,8 @@
 from gevent import monkey; monkey.patch_all()
 import gevent
 import multiprocessing
-import urllib2
-import simplejson
+import requests
+import pymongo
 import time
 import threading
 from Queue import Queue
@@ -19,62 +19,58 @@ count = 1
 def retrieve_user_from_queue():
     threading_list = []
     for i in range(10):
-        t = threading.Thread(target=start_loop, args=(i,))
+        t = threading.Thread(target=start_loop)
         threading_list.append(t)
         t.start()
         time.sleep(1)
     for t in threading_list:
         t.join()
 
-def start_loop(thread):
+def start_loop():
     start = time.time()
+
     while True:
         if not bfs_queue.empty():
             user = bfs_queue.get()
             global count
             print count
             count+=1
-            _request_followers_of_user(user,thread)
+            _request_followers_of_user(user)
         else:
             time.sleep(1)
-        # if time.time()-start > 60:
-        #     break
+        # if time.time()-start > 300:
+            # break
 
-def _request_followers_of_user(user,thread):
+def _request_followers_of_user(user):
     url = 'https://api.500px.com/v1/users/'+str(user)+'/followers?fullformat=1&rpp=100'
-    global proxy_manager
-    proxy_addr = proxy_manager.get_proxy(thread)
-    total_pages = _fetch(user, url, 1, 0, proxy_addr)
+    total_pages = _fetch(user, url, 1, 0)
     if total_pages is not None and total_pages > 1:
         jobs = []
         for page in xrange(2,total_pages+1):
-            jobs.append(gevent.spawn(_fetch, user, url+"&page="+str(page), page, 0, proxy_addr))
+            jobs.append(gevent.spawn(_fetch, user, url+"&page="+str(page), page, 0))
         gevent.joinall(jobs)
     else:
         bfs_queue.put(user)
         
-def _fetch(user, url, page, attempts, proxy_addr):
+def _fetch(user, url, page, attempts):
     pages = None
     followers = None
     result = None
     if attempts >= 3:
         return None
-    proxy=urllib2.ProxyHandler({'http': proxy_addr})
-    opener=urllib2.build_opener(proxy, urllib2.HTTPHandler)
-    opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36')]
     try:
-        response = opener.open(url, timeout = 3).read()
-        result = simplejson.loads(response)
+        response = requests.get(url,timeout=3)
+        result = response.json()
         # print "successful getting page %d"%page
         followers = result['followers']
         follower_list = []   
         for follower in followers:
             follower_list.append(follower)
-        # _save_follower_relation_to_db(user, follower_list) 
+        _save_follower_relation_to_db(user, follower_list) 
     except Exception, e:
         # print e
         # print "refetch page %d"%page
-        return _fetch(user, url, page, attempts+1, proxy_addr)
+        return _fetch(user, url, page, attempts+1)
     return result['followers_pages']
 
 #may want to spawn to separate threads
@@ -118,10 +114,12 @@ def user_search_start_running():
     bfs_queue.put(9149967)
 
     #start proxy manager
-    global proxy_manager
     proxy_manager = ProxyManager()
     proxy_manager.retrieve_new_proxies()
     #start daemon refreshing available proxies
     t = threading.Thread(target=proxy_manager.refresh_proxies)
     t.start()
-    retrieve_user_from_queue()
+    while True:
+        print proxy_manager.proxy_list[0]
+        time.sleep(10)
+    # retrieve_user_from_queue()

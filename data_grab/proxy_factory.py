@@ -31,11 +31,12 @@ class ProxyFactory:
         opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36')]
         try:
             start = time.clock()
-            data = opener.open(url, timeout = 3)
+            response = opener.open(url, timeout = 3).read()
             end = time.clock()
             self.available_proxies[address] = end-start
             # print "OK"
         except Exception as e:
+            pass
             # print "unavailable"
     
     def ValidateProxies(self, proxyList):
