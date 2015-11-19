@@ -87,31 +87,35 @@ def _fetch(url, page, attempts, proxy_addr):
 
 def _save_follower_relation_to_db(user, follower_list, thread):
     follower_id_list = []
+    refined_follower_list = []
+
     rejected_fields = ['domain','firstname','lastname','cover_url','thumbnail_background_url','avatars']
 
     for follower in follower_list:
         follower_id_list.append(follower['id'])
-        user_manager.add_user(follower['id'])
-        bfs_queue.put(follower['id'])
-        for field in rejected_fields:
-            follower.pop(field, None)
+        if not user_manager.user_seen(follower['id']):
+            user_manager.add_user(follower['id'])
+            bfs_queue.put(follower['id'])
+            for field in rejected_fields:
+                follower.pop(field, None)
+            refined_follower_list.append(follower)
 
     #save users into users collection
-    mydb = mydb_list[thread%5]
-    user_collection = mydb.users
-    user_collection.insert_many(follower_list)
+    user_collection = mydb_list.users
+    if len(refined_follower_list)>0:
+        user_collection.insert_many(refined_follower_list)
 
     #add the following relation of the given user into user relation collection
     user_relation_collection = mydb.user_relation
     relation = {}
     relation['user'] = user
     relation['followers'] = follower_id_list
-    user_relation_collection.insert(relation)
+    # user_relation_collection.insert(relation)
 
 
 def user_search_start_running():
     global bfs_queue
-    bfs_queue = Queue()
+    bfs_queue = Queue(maxsize=0)
     bfs_queue.put(9149967)
 
     #start proxy manager
