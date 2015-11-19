@@ -2,11 +2,11 @@ import proxy_factory
 import threading
 import time
 from Queue import Queue
-from global_data import THREAD_NUM
+from global_data import THREAD_NUM, PROXY_MULTI_FACTOR, PROXY_FRESH_INTERVAL
 
 class ProxyManager(object):
     def __init__(self):
-        self.capacity = THREAD_NUM*3
+        self.capacity = THREAD_NUM*PROXY_MULTI_FACTOR
         self.proxy_list = []
         self.available_proxies = Queue()
         self.order_map = {}
@@ -29,7 +29,7 @@ class ProxyManager(object):
 
     def get_proxy(self, thread):
         order = self.order_map[thread]
-        self.order_map[thread] = (order+1)%3
+        self.order_map[thread] = (order+1)%PROXY_MULTI_FACTOR
         pos = order*THREAD_NUM+thread
         while pos >= len(self.proxy_list):
             pos -= THREAD_NUM
@@ -43,7 +43,7 @@ class ProxyManager(object):
         last_update = time.time()
         while True:
             now = time.time()
-            if now-last_update > 30:
+            if now-last_update > PROXY_FRESH_INTERVAL:
                 self.retrieve_new_proxies()
                 self.proxy_list = []
                 self.refill_proxy_list()

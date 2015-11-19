@@ -3,7 +3,7 @@ from pxapi import api
 
 import global_data
 from global_data import CONSUMER_KEY, CONSUMER_SECRET, PHOTO_GRAB_PER_TIME
-from db_helper import mydb
+# from db_helper import mydb
 
 class PhotoStream(object):
 	def __init__(self):

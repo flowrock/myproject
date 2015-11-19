@@ -13,6 +13,10 @@ USER_AMOUNT = 2**26
 #user grab thread number
 THREAD_NUM = 10
 
+PROXY_MULTI_FACTOR = 3
+
+PROXY_FRESH_INTERVAL = 120
+
 
 
 
