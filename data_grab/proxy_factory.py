@@ -13,7 +13,7 @@ class ProxyFactory:
         self.ValidateProxies(proxyList)
 
     def FetchProxies(self):
-        u = "http://www.freeproxylists.net/zh/?c=us&f=1&s=u"
+        u = "http://proxylist.hidemyass.com/"
         driver = webdriver.phantomjs.webdriver.WebDriver(executable_path="/usr/local/lib/node_modules/phantomjs/lib/phantom/bin/phantomjs")
         driver.get(u)
         rows = driver.find_elements_by_css_selector("table > tbody > tr")
@@ -36,8 +36,8 @@ class ProxyFactory:
             self.available_proxies[address] = end-start
             # print "OK"
         except Exception as e:
-            pass
             # print "unavailable"
+            pass
     
     def ValidateProxies(self, proxyList):
         url = "https://api.500px.com/v1/users/9149967/followers?fullformat=1"

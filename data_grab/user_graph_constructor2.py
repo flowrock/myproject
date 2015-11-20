@@ -6,7 +6,7 @@ import time
 import threading
 from Queue import Queue
 import user_manager
-from db_helper import mydb_list
+from db_helper import mydb
 from global_data import THREAD_NUM
 
 bfs_queue = None
@@ -93,12 +93,12 @@ def _save_follower_relation_to_db(user, follower_list):
             refined_follower_list.append(follower)
 
     #save users into users collection
-    user_collection = mydb_list.users
+    user_collection = mydb.users
     if len(refined_follower_list)>0:
         user_collection.insert_many(refined_follower_list)
 
     #add the following relation of the given user into user relation collection
-    user_relation_collection = mydb_list.user_relation
+    user_relation_collection = mydb.user_relation
     relation = {}
     relation['user'] = user
     relation['followers'] = follower_id_list

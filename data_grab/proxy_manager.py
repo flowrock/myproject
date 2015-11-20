@@ -17,12 +17,12 @@ class ProxyManager(object):
     def remove_proxy(self, proxy):
         if proxy in self.proxy_list:
             self.proxy_list.remove(proxy)
-        self.refill_proxy_list()
+            self.refill_proxy_list()
 
-    def retrieve_new_proxies(self):
+    def retrieve_new_proxies(self, fill_list=True):
         proxy_dict = proxy_factory.get_available_proxies()
         for proxy in proxy_dict:
-            if len(self.proxy_list) < self.capacity:
+            if len(self.proxy_list) < self.capacity and fill_list:
                 self.proxy_list.append(proxy)
             else:
                 self.available_proxies.put(proxy)
@@ -44,12 +44,12 @@ class ProxyManager(object):
         while True:
             now = time.time()
             if now-last_update > PROXY_FRESH_INTERVAL:
-                self.retrieve_new_proxies()
+                self.retrieve_new_proxies(fill_list=False)
                 self.proxy_list = []
                 self.refill_proxy_list()
                 last_update = now
             else:
-                time.sleep(10)
+                time.sleep(PROXY_FRESH_INTERVAL/2)
 
     def refill_proxy_list(self):
         while len(self.proxy_list)<self.capacity and not self.available_proxies.empty():

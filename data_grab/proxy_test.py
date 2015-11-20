@@ -4,11 +4,11 @@ import threading
 import time
 
 pm = ProxyManager()
-proxy_manager.refresh_proxies()
+pm.retrieve_new_proxies()
 while True:
-	if len(pm.current_available_proxies())==0:
+	if len(pm.proxy_list)==0:
 		print "wait a minute"
 		time.sleep(3)
 	else:
 		break
-print pm.current_available_proxies()
+print pm.proxy_list

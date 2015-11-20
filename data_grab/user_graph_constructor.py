@@ -8,7 +8,7 @@ import threading
 from Queue import Queue
 import user_manager
 from proxy_manager import ProxyManager
-from db_helper import mydb_list
+from db_helper import mydb
 from global_data import THREAD_NUM
 
 bfs_queue = None
@@ -45,23 +45,30 @@ def _request_followers_of_user(user,thread):
     url = 'https://api.500px.com/v1/users/'+str(user)+'/followers?fullformat=1&rpp=100'
     global proxy_manager
     proxy_addr = proxy_manager.get_proxy(thread)
-    total_pages, l1 = _fetch(url, 1, 0, proxy_addr)
-    if total_pages is not None and l1 is not None:
-        value = []
-        for f in l1:
-            value.append(f)
-        if total_pages > 1:
-            jobs = []
-            for page in xrange(2,total_pages+1):
-                jobs.append(gevent.spawn(_fetch, url+"&page="+str(page), page, 0, proxy_addr))
-            gevent.joinall(jobs)
-            for job in jobs:
-                r = job.value
-                if r[1] is not None:
-                    for fv in r[1]:
-                        value.append(fv)
-        if len(value) > 0:
-            _save_follower_relation_to_db(user, value, thread)
+    if proxy_addr is not None:
+        total_pages, l1, fc= _fetch(url, 1, 0, proxy_addr)
+        if total_pages is not None and l1 is not None and fc is not None:
+            value = []
+            for f in l1:
+                value.append(f)
+            if total_pages > 1:
+                jobs = []
+                for page in xrange(2,total_pages+1):
+                    jobs.append(gevent.spawn(_fetch, url+"&page="+str(page), page, 0, proxy_addr))
+                gevent.joinall(jobs)
+                for job in jobs:
+                    r = job.value
+                    if r[1] is not None:
+                        for fv in r[1]:
+                            value.append(fv)
+            if len(value) > 0 and len(value) == fc:
+                _save_follower_relation_to_db(user, value, thread)
+            else:
+                bfs_queue.put(user)
+                proxy_manager.remove_proxy(proxy_addr)
+        else:
+            bfs_queue.put(user)
+            proxy_manager.remove_proxy(proxy_addr)
     else:
         bfs_queue.put(user)
 
@@ -69,9 +76,10 @@ def _request_followers_of_user(user,thread):
 def _fetch(url, page, attempts, proxy_addr):
     pages = None
     followers = None
+    followers_count = None
     result = None
     if attempts >= 3:
-        return None, None
+        return None, None, None
     proxy=urllib2.ProxyHandler({'http': proxy_addr})
     opener=urllib2.build_opener(proxy, urllib2.HTTPHandler)
     opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36')]
@@ -80,9 +88,10 @@ def _fetch(url, page, attempts, proxy_addr):
         result = simplejson.loads(response)
         followers = result['followers']
         pages = result['followers_pages']
+        followers_count = result['followers_count']
     except Exception, e:
         return _fetch(url, page, attempts+1, proxy_addr)
-    return pages, followers
+    return pages, followers, followers_count
 
 
 def _save_follower_relation_to_db(user, follower_list, thread):
@@ -101,7 +110,7 @@ def _save_follower_relation_to_db(user, follower_list, thread):
             refined_follower_list.append(follower)
 
     #save users into users collection
-    user_collection = mydb_list.users
+    user_collection = mydb.users
     if len(refined_follower_list)>0:
         user_collection.insert_many(refined_follower_list)
 
@@ -110,7 +119,7 @@ def _save_follower_relation_to_db(user, follower_list, thread):
     relation = {}
     relation['user'] = user
     relation['followers'] = follower_id_list
-    # user_relation_collection.insert(relation)
+    user_relation_collection.insert(relation)
 
 
 def user_search_start_running():
