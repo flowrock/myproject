@@ -13,7 +13,7 @@ class ProxyManager(object):
         for i in xrange(THREAD_NUM):
             self.order_map[i] = 0
 
-    #remove unavailabel proxy from the dictionary
+    #remove unavailable proxy from the dictionary
     def remove_proxy(self, proxy):
         if proxy in self.proxy_list:
             self.proxy_list.remove(proxy)

@@ -5,6 +5,7 @@ import urllib2
 import simplejson
 import time
 import threading
+import pickle
 from Queue import Queue
 import user_manager
 from proxy_manager import ProxyManager
@@ -121,6 +122,16 @@ def _save_follower_relation_to_db(user, follower_list, thread):
     relation['followers'] = follower_id_list
     user_relation_collection.insert(relation)
 
+def periodic_info_backup():
+    last_update = time.time()
+    while True:
+        now = time.time()
+        if now-last_update > 600:
+            pickle.dump(user_manager.user_bit_array,open('bitcopy.txt','wb'))
+            last_update = now
+        else:
+            time.sleep(300)
+
 
 def user_search_start_running():
     global bfs_queue
@@ -132,6 +143,8 @@ def user_search_start_running():
     proxy_manager = ProxyManager()
     proxy_manager.retrieve_new_proxies()
     #start daemon refreshing available proxies
-    # t = threading.Thread(target=proxy_manager.refresh_proxies)
-    # t.start()
+    t = threading.Thread(target=proxy_manager.refresh_proxies)
+    t.start()
+    tp = threading.Thread(target=periodic_info_backup)
+    tp.start()
     retrieve_user_from_queue()

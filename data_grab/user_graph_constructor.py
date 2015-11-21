@@ -5,6 +5,7 @@ import urllib2
 import simplejson
 import time
 import threading
+import pickle
 from Queue import Queue
 import user_manager
 from proxy_manager import ProxyManager
@@ -12,26 +13,20 @@ from db_helper import mydb
 from global_data import THREAD_NUM
 
 bfs_queue = None
-info_queue = None
 proxy_manager = None
 
 count = 1
 
 #the user mining process is an infinite loop
 def retrieve_user_from_queue():
-    global info_queue
-    info_queue = Queue()
-    it = threading.Thread(target=save_follower_relation_to_db)
-    it.start()
     threading_list = []
     for i in range(THREAD_NUM):
         t = threading.Thread(target=start_loop, args=(i,))
         threading_list.append(t)
-        time.sleep(1)
         t.start()
+        time.sleep(1)
     for t in threading_list:
         t.join()
-    it.join()
 
 def start_loop(thread):
     start = time.time()
@@ -68,8 +63,7 @@ def _request_followers_of_user(user,thread):
                         for fv in r[1]:
                             value.append(fv)
             if len(value) > 0 and len(value) == fc:
-                global info_queue
-                info_queue.put([user,value])
+                _save_follower_relation_to_db(user, value, thread)
             else:
                 bfs_queue.put(user)
                 proxy_manager.remove_proxy(proxy_addr)
@@ -78,6 +72,7 @@ def _request_followers_of_user(user,thread):
             proxy_manager.remove_proxy(proxy_addr)
     else:
         bfs_queue.put(user)
+        time.sleep(10)
 
         
 def _fetch(url, page, attempts, proxy_addr):
@@ -101,40 +96,42 @@ def _fetch(url, page, attempts, proxy_addr):
     return pages, followers, followers_count
 
 
-def save_follower_relation_to_db():
+def _save_follower_relation_to_db(user, follower_list, thread):
+    follower_id_list = []
+    refined_follower_list = []
+
+    rejected_fields = ['domain','firstname','lastname','cover_url','thumbnail_background_url','avatars']
+
+    for follower in follower_list:
+        follower_id_list.append(follower['id'])
+        if not user_manager.user_seen(follower['id']):
+            user_manager.add_user(follower['id'])
+            bfs_queue.put(follower['id'])
+            for field in rejected_fields:
+                follower.pop(field, None)
+            refined_follower_list.append(follower)
+
+    #save users into users collection
+    user_collection = mydb.users
+    if len(refined_follower_list)>0:
+        user_collection.insert_many(refined_follower_list)
+
+    #add the following relation of the given user into user relation collection
+    user_relation_collection = mydb.user_relation
+    relation = {}
+    relation['user'] = user
+    relation['followers'] = follower_id_list
+    user_relation_collection.insert(relation)
+
+def periodic_info_backup():
+    last_update = time.time()
     while True:
-        global info_queue
-        if not info_queue.empty():
-            record = info_queue.get()
-            user = record[0]
-            follower_list = record[1]
-            follower_id_list = []
-            refined_follower_list = []
-
-            rejected_fields = ['domain','firstname','lastname','cover_url','thumbnail_background_url','avatars']
-
-            for follower in follower_list:
-                follower_id_list.append(follower['id'])
-                if not user_manager.user_seen(follower['id']):
-                    user_manager.add_user(follower['id'])
-                    bfs_queue.put(follower['id'])
-                    for field in rejected_fields:
-                        follower.pop(field, None)
-                    refined_follower_list.append(follower)
-
-            #save users into users collection
-            user_collection = mydb.users
-            if len(refined_follower_list)>0:
-                user_collection.insert_many(refined_follower_list)
-
-            #add the following relation of the given user into user relation collection
-            user_relation_collection = mydb.user_relation
-            relation = {}
-            relation['user'] = user
-            relation['followers'] = follower_id_list
-            user_relation_collection.insert(relation)
+        now = time.time()
+        if now-last_update > 600:
+            pickle.dump(user_manager.user_bit_array,open('bitcopy.txt','wb'))
+            last_update = now
         else:
-            time.sleep(1)
+            time.sleep(300)
 
 
 def user_search_start_running():
@@ -146,7 +143,9 @@ def user_search_start_running():
     global proxy_manager
     proxy_manager = ProxyManager()
     proxy_manager.retrieve_new_proxies()
-    # start daemon refreshing available proxies
-    t = threading.Thread(target=proxy_manager.refresh_proxies)
-    t.start()
+    #start daemon refreshing available proxies
+    # t = threading.Thread(target=proxy_manager.refresh_proxies)
+    # t.start()
+    tp = threading.Thread(target=periodic_info_backup)
+    tp.start()
     retrieve_user_from_queue()

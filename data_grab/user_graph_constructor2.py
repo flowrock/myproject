@@ -40,7 +40,6 @@ def start_loop():
 
 def _request_followers_of_user(user):
     url = 'https://api.500px.com/v1/users/'+str(user)+'/followers?fullformat=1&rpp=100'
-    global proxy_manager
     total_pages, l1 = _fetch(url, 1, 0)
     if total_pages is not None and l1 is not None:
         value = []
