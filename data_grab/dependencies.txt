@@ -1,7 +1,0 @@
-requests-oauth
-mongodb
-simplejson
-bitarray
-selenium
-PhantomJS
-gevent
