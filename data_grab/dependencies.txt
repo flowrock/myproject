@@ -5,3 +5,7 @@ bitarray
 selenium
 PhantomJS
 gevent
+nltk
+english.all.3class.nodistsim.crf.ser.gz
+stanford-ner.jar
+tincan

@@ -44,7 +44,7 @@ def smart_urlencode(kwargs):
             del(kwargs[key])
     return urllib.urlencode(kwargs, True)
 
-def paginate(skip, rpp, request_function, title, total_pages=5):
+def paginate(skip, rpp, request_function, title, total_pages=1):
     page = 1
     if skip:
         page = skip / rpp
