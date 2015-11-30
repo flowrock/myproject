@@ -25,13 +25,13 @@ class PhotoStream(object):
 		try:
 			results = self.client.get_photos(rpp=10, feature='popular', only=category, sort='rating', tags=1)
 		except:
-			self.get_pop_photo_stream(category, attempts+1)
+			self.request_pop_photo_stream(category, attempts+1)
 		return results
 
 	def get_located_photos(self, photo_list, category):	
 		for photo in photo_list:
 			if photo_manager.photo_seen(photo['id']):
-				continue
+				self.store_list.append(photo)
 			else:
 				photo_manager.add_photo(photo['id'])
 				if photo['latitude'] is not None:
@@ -127,6 +127,17 @@ class PhotoStream(object):
 		elif category == 'People':
 			photo_collection = mydb.people
 		for photo in photo_list:
-			photo_collection.insert(photo)
-		
+			#check if the photo is already in the database
+			if photo_collection.find_one({'id':photo['id']}) is None:
+				if photo['latitude'] is not None:
+					photo_collection.insert(photo)
+			else:
+				photo_collection.update_one({'id':photo['id']},{
+	        		"$set": {
+	            	"rating": photo['rating']
+	        		},
+	        		"$currentDate": {"lastModified": True}
+	    			}
+				)
+
 
