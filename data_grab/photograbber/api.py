@@ -11,8 +11,11 @@ class FiveHundredPx(object):
 
     def get_photos(self, skip=None, rpp=20, **kwargs):
         request_function = partial(self.request, '/photos', **kwargs)
-        for photo in paginate(skip, rpp, request_function, 'photos'):
-            yield photo
+        try:
+            for photo in paginate(skip, rpp, request_function, 'photos'):
+                yield photo
+        except:
+            pass
 
     def request(self, path, post_args=None, log_request=False, **kwargs):
         """Handles the actual request to 500px. Posting has yet 

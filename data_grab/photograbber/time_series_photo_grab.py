@@ -21,14 +21,8 @@ class TimeSeriesPhotoGrabber(object):
 #core function of the time series photo grabbing
 def start_looping():
 	pg = TimeSeriesPhotoGrabber()
-	intervals = 0
 	while True:
 		count = 0
 		pg._async_photo_processing()
 		time.sleep(PHOTO_GRAB_INTERVAL)
-		intervals += 1
-
-		if intervals >= 1:
-			break
-
 

@@ -4,3 +4,4 @@ pxmagic
 *.jar
 *.gz
 *.prop
+global_data.py

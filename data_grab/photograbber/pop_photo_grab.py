@@ -3,7 +3,7 @@ import api
 import operator
 import requests
 import time
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Pool
 from nltk.tag import StanfordNERTagger
 
 import global_data
@@ -14,18 +14,22 @@ import location_manager
 
 class PhotoStream(object):
 	def __init__(self):
-		self.client = api.FiveHundredPx(CONSUMER_KEY, CONSUMER_SECRET)
 		self.store_list= []
 		self.st = StanfordNERTagger(r'english.all.3class.nodistsim.crf.ser.gz',r'stanford-ner.jar')
 
 	def request_pop_photo_stream(self, category, attempts):
 		if attempts == 3:
 			return None
-		results = None
-		try:
-			results = self.client.get_photos(rpp=10, feature='popular', only=category, sort='rating', tags=1)
-		except:
-			self.request_pop_photo_stream(category, attempts+1)
+		payload = {'consumer_key':CONSUMER_KEY,'rpp':100,'feature':'popular','only':category,'tags':1, 'sort':'rating'}
+		results = []
+		for page in range(1,4):
+			payload['page'] = page
+			try:
+				response = requests.get('https://api.500px.com/v1/photos', params=payload)
+				result_page = response.json()
+				results.extend(result_page['photos'])
+			except:
+				self.request_pop_photo_stream(category, attempts+1)
 		return results
 
 	def get_located_photos(self, photo_list, category):	
@@ -38,7 +42,7 @@ class PhotoStream(object):
 					photo['exact location'] = True
 					self.store_list.append(photo)
 				elif category != 'People':
-					self.extract_location(photo,category)				
+					self.extract_location(photo,category)	
 		return self.store_list
 
 	def extract_location(self, photo, category):
@@ -61,7 +65,8 @@ class PhotoStream(object):
 				total_tags = total_tags+tag+' '
 		total_tags = total_tags[:-1]
 		possible_locations.extend(self.nlp_analyze(total_tags, tag_pos_array))
-
+		
+		possible_locations = [loc for loc in possible_locations if loc not in EXCLUDED_LOCATIONS]
 		if len(possible_locations) == 0:
 			return None
 		location_dic = {}
@@ -143,8 +148,7 @@ class PhotoStream(object):
 				photo_collection.update_one({'id':photo['id']},{
 	        		"$set": {
 	            	"rating": photo['rating']
-	        		},
-	        		"$currentDate": {"lastModified": True}
+	        		}
 	    			}
 				)
 
