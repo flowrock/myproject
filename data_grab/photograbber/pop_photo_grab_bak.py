@@ -23,7 +23,7 @@ class PhotoStream(object):
 			return None
 		results = None
 		try:
-			results = self.client.get_photos(rpp=10, feature='popular', only=category, sort='rating', tags=1)
+			results = self.client.get_photos(rpp=2, feature='popular', only=category, sort='rating', tags=1)
 		except:
 			self.request_pop_photo_stream(category, attempts+1)
 		return results
@@ -44,9 +44,8 @@ class PhotoStream(object):
 	def extract_location(self, photo, category):
 		tags = photo['tags']
 		possible_locations = []
-		tag_pos_array = []
-		pos = 0
-		total_tags = ''
+		q = Queue()
+		job_list = []
 		for tag in tags:
 			tag = tag.title()
 			if tag in location_manager.known_locations:
@@ -54,13 +53,13 @@ class PhotoStream(object):
 			elif tag in location_manager.not_locations:
 				continue
 			elif tag not in EXCLUDED_LOCATIONS:
-				separated_subtags = tag.split()
-				#record the end position of a tag in total_tags
-				pos = pos+len(separated_subtags)
-				tag_pos_array.append(pos)
-				total_tags = total_tags+tag+' '
-		total_tags = total_tags[:-1]
-		possible_locations.extend(self.nlp_analyze(total_tags, tag_pos_array))
+				p = Process(target=self.nlp_analyze, args=(tag,q))
+				job_list.append(p)
+				p.start()
+		for job in job_list:
+			job.join()
+		while not q.empty():
+			possible_locations.extend(q.get())
 
 		if len(possible_locations) == 0:
 			return None
@@ -84,37 +83,30 @@ class PhotoStream(object):
 			photo['exact location'] = False
 			self.store_list.append(photo)
 
-	def nlp_analyze(self, text, tag_pos_array):
+	def nlp_analyze(self, text, q):
 		if text is None or text == "":
 			return []
 		possible_locations = []
-		splitted_text = text.split()
-		total_length = len(splitted_text)
-		result = self.st.tag(splitted_text)
-		start = 0
-		for i in range(0,len(tag_pos_array)):
-			end = tag_pos_array[i]
-			conseq = False
-			loc_tmp = ""
-			for j in range(start,end):
-				if result[j][1] == 'LOCATION':
-					if conseq:
-						loc_tmp = loc_tmp+' '+result[j][0]
-					else:
-						loc_tmp = result[j][0]
-						conseq = True
+		result = self.st.tag(text.split())
+		loc_tmp = ""
+		conseq = False
+		for r in result:
+			if r[1] == 'LOCATION':
+				if conseq:
+					loc_tmp = loc_tmp+' '+r[0]
 				else:
-					if loc_tmp != "":
-						location_manager.known_locations.add(loc_tmp)
-						possible_locations.append(loc_tmp)
-					loc_tmp = ""
-					conseq = False
-					location_manager.not_locations.add(result[j][0])
-			if loc_tmp != "":
-				possible_locations.append(loc_tmp)
-			start = end
-
-		return possible_locations
+					loc_tmp = r[0]
+					conseq = True
+			else:
+				if loc_tmp != "":
+					location_manager.known_locations.add(loc_tmp)
+					possible_locations.append(loc_tmp)
+				loc_tmp = ""
+				conseq = False
+				location_manager.not_locations.add(r[0])
+		if loc_tmp != "":
+			possible_locations.append(loc_tmp)
+		q.put(possible_locations)
 
 	def request_latlng(self, location, category):
 		#use three geonames.org accounts to avoid requesting limitations
