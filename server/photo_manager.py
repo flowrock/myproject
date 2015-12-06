@@ -9,29 +9,19 @@ import threading
 PHOTO_NUM = 100
 CATEGORIES = ['city','landscape','people']
 DAYS = [1,3,7]
+PHOTO_FIELDS = ['name','camera','lens','focal_length','iso','shutter_speed','aperture','rating',
+'latitude','longitude','tags','image_url','user']
 
 connection = pymongo.MongoClient('localhost', 27017, maxPoolSize=10)
 mydb = connection.px500
 
-photos = {}
-for category in CATEGORIES:
-	photos[category] = {}
-	for day in DAYS:
-		photos[category][day] = []
-
-
-def get_requested_photos(category,day):
-
-	return jsonify({'photos':photos[category][day]})
-
-
 def scan_active_photos():
-	temp = {}
+	photos = {}
 
 	for category in CATEGORIES:
-		temp[category] = {}
+		photos[category] = {}
 		for day in DAYS:
-			temp[category][day] = []
+			photos[category][day] = []
 
 	now = time.time()
 	for category in CATEGORIES:
@@ -41,24 +31,34 @@ def scan_active_photos():
 			d = tincan.conversions.iso8601.make_datetime(created_time)
 			created_in_seconds = time.mktime(d.timetuple())
 			time_passed = now - created_in_seconds
-			item = {x:item[x] for x in item if x in ['name']}
+			item = {x:item[x] for x in item if x in PHOTO_FIELDS}
 			#over one week, then not refresh at all, save to history
 			if time_passed > 3600*24*DAYS[2]:
 				spill_photos_to_history(category,item)
-			elif time_passed < 3600*24*DAYS[1]:
-				temp[category][DAYS[1]].append(item)
-			elif time_passed < 3600*24*DAYS[0]:
-				temp[category][DAYS[0]].append(item)
-			temp[category][DAYS[2]].append(item)
+			if time_passed < 3600*24*DAYS[1]:
+				photos[category][DAYS[1]].append(item)
+			if time_passed < 3600*24*DAYS[0]:
+				photos[category][DAYS[0]].append(item)
+			photos[category][DAYS[2]].append(item)
 
-	for category in CATEGORIES:
-		for day in DAYS:
-			photos[category][day] = temp[category][day]
+	mydb.current.remove()
+
+	all_photos = {}
+	for day in DAYS:
+		all_photos[day] = []
+		for category in CATEGORIES:
+			all_photos[day].extend(photos[category][day])
+			photo_list = sorted(photos[category][day], key=lambda p:p['rating'], reverse=True)
+			item = {'category':category,'day':day,'photos':photo_list[:100]}
+			mydb.current.insert(item)
+		all_photos[day] = sorted(all_photos[day], key=lambda p:p['rating'], reverse=True)
+		item = {'category':'all','day':day,'photos':all_photos[day][:100]}
+		mydb.current.insert(item)		
 
 
 def spill_photos_to_history(category,item):
-	category_name = "history_"+category
-	mydb[category_name].insert(item)
+	col_name = "history_"+category
+	mydb[col_name].insert(item)
 	mydb[category].remove(item)	
 
 
@@ -68,4 +68,7 @@ def start_photo_managing():
 		t.start()
 		t.join()
 		time.sleep(300)
+
+if __name__ == '__main__':
+	start_photo_managing()
 

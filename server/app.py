@@ -1,31 +1,23 @@
-from flask import Flask, request, jsonify, make_response
-import photo_manager
-
-import threading
+from flask import Flask, request
+import pymongo
+import json
 
 app = Flask(__name__)
+connection = pymongo.MongoClient('localhost', 27017, maxPoolSize=10)
+mydb = connection.px500
 
 @app.route("/api/photos")
 def get_photos():
 	day = 1 #default photos shown for the lastest day
 	category = 'all' #default category is all categories
-	day = request.args.get('day')
-	category = request.args.get('category')
+	if ('day' in request.args):
+		day = request.args.get('day')
+	if ('category' in request.args):
+		category = request.args.get('category')
 
-	response = photo_manager.get_requested_photos(category, int(day))
-	return response
-	# if response is not None:
-	# 	response.status_code = 200
-	# 	return response
-	# else:
-	# 	return not_found()
-	# return "hello"
-
-@app.errorhandler(404)
-def not_found():
-	return make_response(jsonify({'error':'Not found'}), 404)
+	item = mydb.current.find_one({'category':category, 'day':int(day)})
+	return json.dumps(item['photos'])
+	
 
 if __name__ == '__main__':
-	t = threading.Thread(target=photo_manager.start_photo_managing)
-	t.start()
 	app.run()
