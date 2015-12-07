@@ -7,7 +7,7 @@ from multiprocessing import Process, Queue, Pool
 from nltk.tag import StanfordNERTagger
 
 import global_data
-from global_data import CONSUMER_KEY, CONSUMER_SECRET, PHOTO_GRAB_PER_TIME, PHOTO_CATEGORIES, GEONAME_ACCOUNTS, EXCLUDED_LOCATIONS
+from global_data import CONSUMER_KEY, PHOTO_GRAB_PER_TIME, PHOTO_CATEGORIES, GEONAME_ACCOUNTS, EXCLUDED_LOCATIONS
 from db_helper import mydb
 import photo_manager
 import location_manager
@@ -22,7 +22,7 @@ class PhotoStream(object):
 			return None
 		payload = {'consumer_key':CONSUMER_KEY,'rpp':100,'feature':'popular','only':category,'tags':1, 'sort':'rating'}
 		results = []
-		for page in range(1,4):
+		for page in range(1,6):
 			payload['page'] = page
 			try:
 				response = requests.get('https://api.500px.com/v1/photos', params=payload)
